@@ -1,0 +1,47 @@
+# File-file yang TIDAK boleh masuk ke GitHub
+# =============================================
+
+# Environment variables — SANGAT PENTING!
+.env
+.env.local
+.env.production
+backend/.env
+frontend/.env
+frontend/.env.production
+
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+*.egg-info/
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# AI Model files (terlalu besar untuk GitHub)
+ai-service/model/*.keras
+ai-service/model/*.h5
+ai-service/model/saved_model/
+ai-service/logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# Logs
+*.log
+npm-debug.log*

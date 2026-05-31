@@ -1,0 +1,27 @@
+{
+  "name": "EcoScan — Pilah Sampah Cerdas",
+  "short_name": "EcoScan",
+  "description": "Aplikasi cerdas scan sampah dan lacak jejak karbon dengan AI",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8faf9",
+  "theme_color": "#16a34a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["lifestyle", "utilities", "education"],
+  "lang": "id",
+  "dir": "ltr"
+}
