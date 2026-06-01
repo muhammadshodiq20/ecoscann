@@ -1,32 +1,20 @@
 import axios from 'axios'
 
-// Otomatis deteksi URL backend — works di laptop DAN HP
 const getBaseURL = () => {
-  // Jika ada env variable, pakai itu (untuk production/deploy)
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL
-  }
-  // Pakai hostname yang sama dengan frontend, ganti port ke 3002
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL
   const hostname = window.location.hostname
   return `http://${hostname}:3002`
 }
 
-const BASE_URL = getBaseURL()
-console.log('🔗 API URL:', BASE_URL)
-
 const api = axios.create({
-  baseURL: BASE_URL,
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json'
-  }
+  baseURL: getBaseURL(),
+  timeout: 90000, // 90 detik — HuggingFace free tier cold start bisa 30-60 detik
+  headers: { 'Content-Type': 'application/json' }
 })
 
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('ecoscan_token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
+  if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
 

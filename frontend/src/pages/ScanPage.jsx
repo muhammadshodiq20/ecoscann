@@ -126,7 +126,7 @@ export default function ScanPage() {
   const handleFile = async (file) => {
     if (!file) return
     if (!file.type.startsWith('image/')) { setError('File harus berupa gambar.'); return }
-    if (file.size > 5 * 1024 * 1024) { setError('Ukuran gambar maksimal 5MB.'); return }
+    if (file.size > 10 * 1024 * 1024) { setError('Ukuran gambar maksimal 10MB.'); return }
 
     setError('')
     setResult(null)
@@ -151,7 +151,19 @@ export default function ScanPage() {
       setPointsToast(true)
       setTimeout(() => setPointsToast(false), 3000)
     } catch (err) {
-      setError(err.response?.data?.error || 'Gagal menganalisis. Pastikan backend berjalan.')
+      const errMsg = err.response?.data?.error
+      const isTimeout = err.code === 'ECONNABORTED' || err.message?.includes('timeout')
+      if (isTimeout) {
+        setError('AI membutuhkan waktu lebih lama. Coba lagi — biasanya lebih cepat setelah pertama kali.')
+      } else if (err.response?.status === 401) {
+        setError('Sesi habis. Silakan login ulang.')
+      } else if (err.response?.status === 500) {
+        setError(errMsg || 'Server error. Coba beberapa saat lagi.')
+      } else if (!err.response) {
+        setError('Tidak bisa terhubung ke server. Cek koneksi internet kamu.')
+      } else {
+        setError(errMsg || 'Gagal menganalisis gambar. Coba lagi.')
+      }
     } finally {
       setLoading(false)
     }
@@ -277,7 +289,7 @@ export default function ScanPage() {
           <img src={preview} alt="Preview" className="w-full max-h-56 object-contain bg-gray-50" />
           {loading && (
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-              <div className="text-center text-white">
+              <div className="text-center text-white px-4">
                 <div className="relative w-24 h-24 mx-auto mb-2 border-2 border-green-300 rounded-lg overflow-hidden">
                   <div className="absolute left-0 right-0 h-0.5 bg-green-400 scan-animation"></div>
                   <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-green-300"></div>
@@ -286,6 +298,7 @@ export default function ScanPage() {
                   <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-green-300"></div>
                 </div>
                 <p className="text-sm font-medium">AI sedang menganalisis...</p>
+                <p className="text-xs text-green-200 mt-1">Mohon tunggu hingga 30 detik ☕</p>
               </div>
             </div>
           )}
