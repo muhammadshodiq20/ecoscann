@@ -61,7 +61,17 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('[SERVER ERROR]', err.message);
+  // Multer errors (file too large, wrong type, etc)
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({ error: 'Ukuran gambar terlalu besar. Maksimal 10MB.' });
+  }
+  if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+    return res.status(400).json({ error: 'Field gambar tidak sesuai. Gunakan key "image".' });
+  }
+  if (err.message && err.message.includes('gambar')) {
+    return res.status(400).json({ error: err.message });
+  }
   res.status(err.status || 500).json({
     error: process.env.NODE_ENV === 'production' ? 'Terjadi kesalahan server' : err.message
   });

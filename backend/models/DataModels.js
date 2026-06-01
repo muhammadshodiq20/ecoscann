@@ -10,10 +10,10 @@ const scanHistorySchema = new mongoose.Schema({
   },
   wasteType: {
     type: String,
-    required: true,
-    enum: ['plastik', 'organik', 'kertas', 'logam', 'kaca', 'b3', 'elektronik', 'tekstil']
+    required: true
+    // ← TIDAK pakai enum agar label apapun dari AI bisa masuk tanpa validation error
   },
-  confidence: { type: Number },
+  confidence: { type: Number, default: 0 },
   carbonScore: { type: Number, default: 0 },
   imageUrl: { type: String, default: null },
   steps: [{ type: String }],

@@ -7,208 +7,177 @@ const authMiddleware = require('../middleware/auth');
 const { ScanHistory } = require('../models/DataModels');
 const User = require('../models/User');
 
-// ─── Multer: terima key 'image' dari frontend ──────────────────────
+// ─── Multer ────────────────────────────────────────────────────────
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 10 * 1024 * 1024 }, // naikkan ke 10MB
   fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Hanya file gambar yang diizinkan'), false);
-    }
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Hanya file gambar yang diizinkan'), false);
   }
 });
 
-// ─── WASTE_DATA fallback ───────────────────────────────────────────
+// ─── Data sampah ───────────────────────────────────────────────────
 const WASTE_DATA = {
-  plastik: {
-    carbonScore: 1.8,
-    steps: ['Cuci bersih dari sisa makanan', 'Pisahkan tutup botol dan label', 'Kumpulkan di bank sampah atau drop box daur ulang'],
-    tips: 'Botol PET bisa didaur ulang menjadi serat pakaian!'
-  },
-  organik: {
-    carbonScore: 0.3,
-    steps: ['Pisahkan dari sampah anorganik', 'Bisa dijadikan kompos rumahan', 'Campurkan 1:1 dengan daun kering'],
-    tips: '1 kg sampah organik = 0.5 kg kompos berkualitas tinggi'
-  },
-  kertas: {
-    carbonScore: 0.9,
-    steps: ['Pastikan tidak terlalu kotor atau berminyak', 'Lipat dan kumpulkan jadi bundel', 'Setor ke pengepul kertas bekas'],
-    tips: 'Mendaur ulang 1 ton kertas menyelamatkan 17 pohon!'
-  },
-  logam: {
-    carbonScore: 2.1,
-    steps: ['Bilas kaleng dari sisa makanan', 'Gepengkan untuk hemat tempat', 'Setor ke bank sampah atau pengepul besi'],
-    tips: 'Aluminium bisa didaur ulang 100% tanpa kehilangan kualitas'
-  },
-  kaca: {
-    carbonScore: 0.6,
-    steps: ['Cuci bersih botol atau pecahan kaca', 'Bungkus pecahan kaca dengan koran', 'Setor ke bank sampah khusus kaca'],
-    tips: 'Kaca bisa didaur ulang tanpa batas!'
-  },
-  b3: {
-    carbonScore: 3.5,
-    steps: ['JANGAN buang ke tempat sampah biasa!', 'Kumpulkan di wadah tertutup aman', 'Setor ke drop point B3 terdekat (DLHK)'],
-    tips: 'Baterai bekas bisa mencemari tanah selama 50 tahun!'
-  }
+  plastik:  { carbonScore: 1.8, steps: ['Cuci bersih dari sisa makanan', 'Pisahkan tutup botol dan label', 'Kumpulkan di bank sampah atau drop box daur ulang'], tips: 'Botol PET bisa didaur ulang menjadi serat pakaian!' },
+  organik:  { carbonScore: 0.3, steps: ['Pisahkan dari sampah anorganik', 'Bisa dijadikan kompos rumahan', 'Campurkan 1:1 dengan daun kering'], tips: '1 kg sampah organik = 0.5 kg kompos berkualitas tinggi' },
+  kertas:   { carbonScore: 0.9, steps: ['Pastikan tidak terlalu kotor atau berminyak', 'Lipat dan kumpulkan jadi bundel', 'Setor ke pengepul kertas bekas'], tips: 'Mendaur ulang 1 ton kertas menyelamatkan 17 pohon!' },
+  logam:    { carbonScore: 2.1, steps: ['Bilas kaleng dari sisa makanan', 'Gepengkan untuk hemat tempat', 'Setor ke bank sampah atau pengepul besi'], tips: 'Aluminium bisa didaur ulang 100% tanpa kehilangan kualitas' },
+  kaca:     { carbonScore: 0.6, steps: ['Cuci bersih botol atau pecahan kaca', 'Bungkus pecahan kaca dengan koran', 'Setor ke bank sampah khusus kaca'], tips: 'Kaca bisa didaur ulang tanpa batas!' },
+  b3:       { carbonScore: 3.5, steps: ['JANGAN buang ke tempat sampah biasa!', 'Kumpulkan di wadah tertutup aman', 'Setor ke drop point B3 terdekat (DLHK)'], tips: 'Baterai bekas bisa mencemari tanah selama 50 tahun!' },
+  elektronik: { carbonScore: 4.0, steps: ['Jangan dibuang sembarangan', 'Cari e-waste drop point terdekat', 'Hubungi produsen untuk program take-back'], tips: 'E-waste mengandung emas dan logam berharga yang bisa didaur ulang!' },
+  tekstil:  { carbonScore: 1.2, steps: ['Cuci dan keringkan terlebih dahulu', 'Donasikan jika masih layak pakai', 'Setor ke bank pakaian atau pengepul kain'], tips: 'Satu baju bisa digunakan ulang hingga 10 tahun!' }
 };
 
-// ─── Map label AI → key WASTE_DATA ────────────────────────────────
 const CATEGORY_MAP = {
-  'plastik': 'plastik', 'sampah plastik': 'plastik', 'plastic': 'plastik',
-  'organik': 'organik', 'sampah organik': 'organik', 'organic': 'organik', 'sisa makanan': 'organik',
-  'kertas': 'kertas', 'kardus': 'kertas', 'karton': 'kertas', 'paper': 'kertas', 'cardboard': 'kertas',
-  'logam': 'logam', 'besi': 'logam', 'kaleng': 'logam', 'aluminium': 'logam', 'metal': 'logam',
-  'kaca': 'kaca', 'botol kaca': 'kaca', 'glass': 'kaca',
-  'b3': 'b3', 'berbahaya': 'b3', 'baterai': 'b3', 'elektronik': 'b3', 'hazardous': 'b3', 'battery': 'b3',
+  'plastik': 'plastik', 'sampah plastik': 'plastik', 'plastic': 'plastik', 'botol plastik': 'plastik', 'kantong plastik': 'plastik',
+  'organik': 'organik', 'sampah organik': 'organik', 'organic': 'organik', 'sisa makanan': 'organik', 'food waste': 'organik',
+  'kertas': 'kertas', 'kardus': 'kertas', 'karton': 'kertas', 'paper': 'kertas', 'cardboard': 'kertas', 'koran': 'kertas',
+  'logam': 'logam', 'besi': 'logam', 'kaleng': 'logam', 'aluminium': 'logam', 'metal': 'logam', 'baja': 'logam',
+  'kaca': 'kaca', 'botol kaca': 'kaca', 'glass': 'kaca', 'kaca pecah': 'kaca',
+  'b3': 'b3', 'berbahaya': 'b3', 'baterai': 'b3', 'hazardous': 'b3', 'battery': 'b3', 'kimia': 'b3',
+  'elektronik': 'elektronik', 'electronic': 'elektronik', 'e-waste': 'elektronik', 'hp': 'elektronik', 'komputer': 'elektronik',
+  'tekstil': 'tekstil', 'kain': 'tekstil', 'baju': 'tekstil', 'pakaian': 'tekstil', 'textile': 'tekstil', 'fabric': 'tekstil'
 };
 
 const CLASSES = Object.keys(WASTE_DATA);
 const ECO_POINTS_PER_SCAN = 20;
 
-// ─── Cache tips agar hemat API credit ─────────────────────────────
+// ─── Tips cache ─────────────────────────────────────────────────────
 const tipsCache = {};
-const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 1 hari
 
-// ─── Generate Tips pakai Claude (Anthropic) ───────────────────────
 async function generateTips(wasteType, confidence) {
-  // Cek cache dulu
-  const cacheKey = wasteType;
-  const cached = tipsCache[cacheKey];
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION_MS) {
-    console.log(`Tips dari cache: ${wasteType}`);
-    return cached.tips;
-  }
+  const cached = tipsCache[wasteType];
+  if (cached && Date.now() - cached.timestamp < 86400000) return cached.tips;
 
   try {
-    if (!process.env.ANTHROPIC_API_KEY) return null;
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey || apiKey.includes('xxx') || apiKey.includes('GANTI')) return null;
 
-    const response = await axios.post(
+    const res = await axios.post(
       'https://api.anthropic.com/v1/messages',
       {
-        model: 'claude-haiku-4-5-20251001', // model tercepat & termurah
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 150,
-        messages: [
-          {
-            role: 'user',
-            content: `Kamu adalah ahli pengelolaan sampah Indonesia. Berikan 1 tips singkat (maks 2 kalimat, bahasa Indonesia, nada ramah dan motivatif) untuk mendaur ulang atau mengolah sampah jenis: ${wasteType}. Tingkat keyakinan deteksi: ${(confidence * 100).toFixed(0)}%. Langsung tulis tipsnya saja tanpa awalan atau penjelasan tambahan.`
-          }
-        ]
+        messages: [{ role: 'user', content: `Ahli sampah Indonesia. Tips singkat 2 kalimat bahasa Indonesia untuk sampah: ${wasteType}. Langsung tulis tipsnya saja.` }]
       },
-      {
-        headers: {
-          'x-api-key': process.env.ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json'
-        },
-        timeout: 15000
-      }
+      { headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 15000 }
     );
 
-    const tips = response.data.content[0].text.trim();
-
-    // Simpan ke cache
-    tipsCache[cacheKey] = { tips, timestamp: Date.now() };
-    console.log(`Tips baru dari Claude untuk: ${wasteType}`);
+    const tips = res.data.content[0].text.trim();
+    tipsCache[wasteType] = { tips, timestamp: Date.now() };
     return tips;
-
   } catch (e) {
-    console.log('Claude API error, pakai tips default:', e.message);
+    console.log('[TIPS] Skip:', e.message);
     return null;
   }
+}
+
+// ─── Kirim ke HuggingFace ──────────────────────────────────────────
+async function callAI(fileBuffer, filename, mimetype) {
+  const AI_URL = (process.env.AI_SERVICE_URL || '').trim().replace(/\/$/, '');
+  if (!AI_URL) throw new Error('AI_SERVICE_URL tidak diset');
+
+  const formData = new FormData();
+  formData.append('file', fileBuffer, {
+    filename: filename || 'image.jpg',
+    contentType: mimetype || 'image/jpeg'
+  });
+
+  console.log(`[AI] POST ${AI_URL}/predict`);
+
+  const res = await axios.post(`${AI_URL}/predict`, formData, {
+    headers: { ...formData.getHeaders() },
+    timeout: 60000, // 60 detik untuk cold start HuggingFace
+    maxContentLength: Infinity,
+    maxBodyLength: Infinity
+  });
+
+  const data = res.data;
+  console.log('[AI] Response:', JSON.stringify(data));
+
+  if (!data || !data.prediction) throw new Error(`AI response tidak valid: ${JSON.stringify(data)}`);
+  return data;
 }
 
 // ─── POST /api/scan ────────────────────────────────────────────────
 router.post('/', authMiddleware, upload.single('image'), async (req, res) => {
   try {
-    let result;
+    if (!req.file) return res.status(400).json({ error: 'Tidak ada gambar yang dikirim.' });
 
-    // Kirim ke HuggingFace AI service
-    if (process.env.AI_SERVICE_URL && req.file) {
-      try {
-        const formData = new FormData();
-        // Frontend kirim key 'image', AI API butuh key 'file' — wrap ulang di sini
-        formData.append('file', req.file.buffer, {
-          filename: req.file.originalname || 'image.jpg',
-          contentType: req.file.mimetype
-        });
+    let result = null;
+    let source = 'simulation';
 
-        const aiRes = await axios.post(
-          `${process.env.AI_SERVICE_URL}/predict`,
-          formData,
-          { headers: formData.getHeaders(), timeout: 35000 }
-        );
+    // Coba AI
+    try {
+      const aiData = await callAI(req.file.buffer, req.file.originalname, req.file.mimetype);
 
-        const aiData = aiRes.data;
-        console.log('AI response:', aiData);
+      const rawPred = (aiData.prediction || '').toLowerCase().trim();
+      const mappedClass = CATEGORY_MAP[rawPred] || null;
 
-        // Map prediction → class WASTE_DATA
-        const rawPred = (aiData.prediction || '').toLowerCase().trim();
-        const mappedClass = CATEGORY_MAP[rawPred] || CLASSES[0];
-        const wasteInfo = WASTE_DATA[mappedClass];
+      if (mappedClass) {
+        let confidence = parseFloat(aiData.confidence) || 0.85;
+        if (confidence > 1) confidence = confidence / 100;
 
         result = {
           class: mappedClass,
-          confidence: parseFloat(aiData.confidence) || 0.85,
-          carbon_score: wasteInfo.carbonScore,
-          steps: wasteInfo.steps,
-          tips: wasteInfo.tips,
+          confidence,
+          ...WASTE_DATA[mappedClass]
         };
-
-        console.log(`Mapped: "${rawPred}" → "${mappedClass}" (${(result.confidence * 100).toFixed(1)}%)`);
-
-      } catch (aiErr) {
-        console.log('AI service error:', aiErr.message, '— pakai simulasi');
+        source = 'ai';
+        console.log(`[AI] ✅ "${rawPred}" → "${mappedClass}" ${(confidence * 100).toFixed(1)}%`);
+      } else {
+        // Label tidak dikenali — pakai label asli dari AI tetapi data dari CLASSES[0]
+        console.warn(`[AI] ⚠️ Label tidak dikenali: "${rawPred}", pakai fallback`);
       }
+    } catch (aiErr) {
+      const status = aiErr.response?.status || 'no-http';
+      const detail = aiErr.response?.data || aiErr.message;
+      console.error(`[AI] ❌ Error (${status}):`, detail);
     }
 
-    // Fallback simulasi jika AI gagal
+    // Fallback simulasi
     if (!result) {
-      const randomClass = CLASSES[Math.floor(Math.random() * CLASSES.length)];
-      const wasteInfo = WASTE_DATA[randomClass];
+      const cls = CLASSES[Math.floor(Math.random() * CLASSES.length)];
       result = {
-        class: randomClass,
-        confidence: (Math.random() * 0.15 + 0.82),
-        carbon_score: wasteInfo.carbonScore,
-        steps: wasteInfo.steps,
-        tips: wasteInfo.tips
+        class: cls,
+        confidence: parseFloat((Math.random() * 0.15 + 0.82).toFixed(4)),
+        ...WASTE_DATA[cls]
       };
     }
 
-    // Generate tips dari Claude (non-blocking, tidak gagalkan request)
+    // Claude tips (non-blocking)
     const aiTips = await generateTips(result.class, result.confidence);
 
-    // Simpan ke database
+    // Simpan DB
     const scan = await ScanHistory.create({
       userId: req.user._id,
       wasteType: result.class,
-      confidence: parseFloat(result.confidence),
-      carbonScore: result.carbon_score,
+      confidence: result.confidence,
+      carbonScore: result.carbonScore,
       steps: result.steps
     });
 
-    // Update stats user
+    // Update user stats
     await User.findByIdAndUpdate(req.user._id, {
-      $inc: {
-        totalScans: 1,
-        ecoPoints: ECO_POINTS_PER_SCAN,
-        carbonSaved: result.carbon_score * 0.3
-      }
+      $inc: { totalScans: 1, ecoPoints: ECO_POINTS_PER_SCAN, carbonSaved: result.carbonScore * 0.3 }
     });
+
+    console.log(`[SCAN] ✅ Done — source: ${source}, class: ${result.class}`);
 
     res.json({
       scanId: scan._id,
       wasteType: result.class,
       confidence: result.confidence,
-      carbonScore: result.carbon_score,
+      carbonScore: result.carbonScore,
       steps: result.steps,
-      tips: aiTips || result.tips,   // Claude tips, fallback ke default
-      pointsEarned: ECO_POINTS_PER_SCAN
+      tips: aiTips || result.tips,
+      pointsEarned: ECO_POINTS_PER_SCAN,
+      source // untuk debug, bisa dihapus nanti
     });
 
   } catch (err) {
-    console.error('Scan error:', err);
+    console.error('[SCAN] Fatal:', err.message, err.stack);
     res.status(500).json({ error: 'Gagal memproses gambar. Coba lagi.' });
   }
 });
@@ -221,16 +190,26 @@ router.get('/history', authMiddleware, async (req, res) => {
     const skip = (page - 1) * limit;
 
     const [scans, total] = await Promise.all([
-      ScanHistory.find({ userId: req.user._id })
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit),
+      ScanHistory.find({ userId: req.user._id }).sort({ createdAt: -1 }).skip(skip).limit(limit),
       ScanHistory.countDocuments({ userId: req.user._id })
     ]);
 
     res.json({ scans, total, page, totalPages: Math.ceil(total / limit) });
   } catch (err) {
     res.status(500).json({ error: 'Gagal mengambil riwayat.' });
+  }
+});
+
+// ─── GET /api/scan/test-ai (debug) ────────────────────────────────
+router.get('/test-ai', async (req, res) => {
+  const AI_URL = (process.env.AI_SERVICE_URL || '').trim().replace(/\/$/, '');
+  if (!AI_URL) return res.json({ ok: false, error: 'AI_SERVICE_URL tidak diset di .env' });
+
+  try {
+    const ping = await axios.get(AI_URL, { timeout: 15000 });
+    res.json({ ok: true, ai_url: AI_URL, http_status: ping.status, message: '✅ HuggingFace bisa dijangkau' });
+  } catch (e) {
+    res.json({ ok: false, ai_url: AI_URL, error: e.message, http_status: e.response?.status, message: '❌ HuggingFace tidak bisa dijangkau' });
   }
 });
 
