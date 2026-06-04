@@ -83,14 +83,14 @@ export default function RegisterPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Nama Lengkap</label>
-                <input type="text" placeholder="Muhammad Shodiq" autoComplete="name"
+                <input type="text" placeholder="Masukan Nama Lengkap Anda" autoComplete="name"
                   value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-eco-400 focus:ring-2 focus:ring-eco-100 outline-none text-sm transition-all bg-gray-50 focus:bg-white"/>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
-                <input type="email" placeholder="nama@email.com" autoComplete="email"
+                <input type="email" placeholder="Masukan Akun Email Anda" autoComplete="email"
                   value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-eco-400 focus:ring-2 focus:ring-eco-100 outline-none text-sm transition-all bg-gray-50 focus:bg-white"/>
               </div>
