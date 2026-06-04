@@ -36,50 +36,12 @@ export default function DashboardPage() {
     return () => document.removeEventListener('visibilitychange', handleVisibility)
   }, [fetchStats])
 
-  // wasteBreakdown dari backend adalah array: [{ _id: 'plastik', count: 3 }, ...]
-  // Konversi ke object agar bisa dipakai di UI
-  const wasteBreakdown = (() => {
-    const raw = stats?.wasteBreakdown
-    if (!raw) return {}
-    if (Array.isArray(raw)) {
-      return raw.reduce((acc, item) => {
-        if (item._id) acc[item._id] = item.count
-        return acc
-      }, {})
-    }
-    return raw // sudah berbentuk object
-  })()
   const totalScans     = user?.totalScans || stats?.totalScans || 0
   const ecoPoints      = user?.ecoPoints  || 0
   const carbonSaved    = parseFloat((user?.carbonSaved || 0).toFixed(1))
   const level          = ecoPoints >= 500 ? 'Eco Master' : ecoPoints >= 200 ? 'Eco Warrior' : ecoPoints >= 50 ? 'Eco Starter' : 'Pemula'
   const nextLevel      = ecoPoints >= 500 ? 500 : ecoPoints >= 200 ? 500 : ecoPoints >= 50 ? 200 : 50
   const progress       = Math.min((ecoPoints / nextLevel) * 100, 100)
-
-  const days = ['Min','Sen','Sel','Rab','Kam','Jum','Sab']
-
-  // Bangun weeklyData dari dailyScans backend (7 hari terakhir sesuai hari kalender)
-  const weeklyData = (() => {
-    const result = Array(7).fill(0)
-    const dailyScans = stats?.dailyScans || []
-    if (dailyScans.length > 0) {
-      const today = new Date()
-      dailyScans.forEach(({ _id, count }) => {
-        const scanDate = new Date(_id)
-        // Hitung berapa hari lalu dari hari ini
-        const diffDays = Math.round((today - scanDate) / (1000 * 60 * 60 * 24))
-        if (diffDays >= 0 && diffDays < 7) {
-          // Index: hari ini = indeks hari ini dalam minggu, mundur ke belakang
-          const todayIdx = today.getDay()   // 0=Min … 6=Sab
-          let idx = todayIdx - diffDays
-          if (idx < 0) idx += 7
-          result[idx] = count
-        }
-      })
-    }
-    return result
-  })()
-  const maxVal = Math.max(...weeklyData, 1)
 
   return (
     <div className="p-4 space-y-4 pb-6">
@@ -131,54 +93,6 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Aktivitas mingguan */}
-      <div className="card p-4">
-        <h3 className="font-semibold text-gray-800 mb-3">📊 Aktivitas 7 Hari Terakhir</h3>
-        {loading ? (
-          <div className="h-24 bg-gray-50 rounded-xl animate-pulse"/>
-        ) : (
-          <div className="flex items-end gap-1.5 h-24">
-            {weeklyData.map((val, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full rounded-t-lg transition-all"
-                  style={{
-                    height: `${(val / maxVal) * 80}px`,
-                    minHeight: val > 0 ? '8px' : '2px',
-                    background: val > 0
-                      ? 'linear-gradient(180deg, #1D9E75, #085041)'
-                      : '#f3f4f6'
-                  }}/>
-                <span className="text-xs text-gray-400">{days[i]}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {Object.keys(wasteBreakdown).length > 0 && (
-        <div className="card p-4">
-          <h3 className="font-semibold text-gray-800 mb-3">♻️ Distribusi Jenis Sampah</h3>
-          <div className="space-y-2">
-            {(() => {
-              const entries = Object.entries(wasteBreakdown).sort((a,b) => b[1] - a[1]).slice(0, 5)
-              const total = entries.reduce((s, [,c]) => s + c, 0) || 1
-              return entries.map(([type, count]) => {
-                const pct = Math.round((count / total) * 100)
-                return (
-                  <div key={type} className="flex items-center gap-2">
-                    <span className="text-xs text-gray-600 capitalize w-20 shrink-0">{type}</span>
-                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all"
-                        style={{ width: `${pct}%`, background: WASTE_COLORS[type] || '#888' }}/>
-                    </div>
-                    <span className="text-xs text-gray-500 w-10 text-right">{pct}%</span>
-                  </div>
-                )
-              })
-            })()}
-          </div>
-        </div>
-      )}
 
       {/* Riwayat scan terbaru */}
       <div className="card p-4">

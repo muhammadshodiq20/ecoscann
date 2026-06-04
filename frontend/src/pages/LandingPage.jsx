@@ -8,13 +8,10 @@ const WASTE_FACTS = [
   { emoji: '💸', stat: 'Rp 23 Triliun',  desc: 'kerugian ekonomi akibat sampah tahunan' },
 ]
 
-const WASTE_TYPES = [
-  { type: 'Plastik',    pct: 35, color: '#378ADD', emoji: '🧴' },
-  { type: 'Organik',    pct: 57, color: '#1D9E75', emoji: '🌿' },
-  { type: 'Kertas',     pct: 8,  color: '#EF9F27', emoji: '📰' },
-  { type: 'Logam',      pct: 3,  color: '#888780', emoji: '🥫' },
-  { type: 'B3',         pct: 2,  color: '#E24B4A', emoji: '⚠️' },
-  { type: 'Elektronik', pct: 1,  color: '#8B5CF6', emoji: '📱' },
+const TESTIMONIALS = [
+  { name: 'Rina S.',    city: 'Jakarta',   text: 'EcoScan bantu saya pilah sampah dengan benar. AI-nya akurat banget!',        emoji: '👩' },
+  { name: 'Budi W.',   city: 'Surabaya',  text: 'Dapat 500 EcoPoints dalam seminggu. Gamifikasi-nya bikin nagih.',             emoji: '👨' },
+  { name: 'Sari D.',   city: 'Bandung',   text: 'Fitur tips daur ulangnya sangat membantu. Sekarang gak bingung buang sampah.', emoji: '👩‍🦱' },
 ]
 
 const FEATURES = [
@@ -26,18 +23,9 @@ const FEATURES = [
   { icon: '🌍', title: 'Dampak Nyata',        desc: 'Bergabung dengan ribuan pengguna yang bersama-sama jaga bumi' },
 ]
 
-const PROVINCES = ['DKI Jakarta', 'Jawa Barat', 'Jawa Timur', 'Jawa Tengah', 'Bali', 'Sumatera Utara']
-const WASTE_PROBLEMS = [
-  { province: 'DKI Jakarta',  ton: 7500, color: '#E24B4A' },
-  { province: 'Jawa Barat',   ton: 5800, color: '#EF9F27' },
-  { province: 'Jawa Timur',   ton: 5200, color: '#378ADD' },
-  { province: 'Jawa Tengah',  ton: 4100, color: '#1D9E75' },
-  { province: 'Bali',         ton: 1100, color: '#8B5CF6' },
-  { province: 'Sumatera Utara', ton: 3900, color: '#EC4899' },
-]
+
 
 export default function LandingPage() {
-  const maxTon = Math.max(...WASTE_PROBLEMS.map(p => p.ton))
 
   return (
     <div className="min-h-screen bg-white font-sans">
@@ -111,47 +99,39 @@ export default function LandingPage() {
             ))}
           </div>
 
-          {/* Komposisi sampah */}
+          {/* Dampak nyata */}
           <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm mb-6">
-            <h3 className="font-semibold text-gray-800 mb-4">Komposisi Sampah Nasional</h3>
-            <div className="space-y-3">
-              {WASTE_TYPES.map((w, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <span className="text-xl w-8 shrink-0">{w.emoji}</span>
-                  <div className="flex-1">
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="font-medium text-gray-700">{w.type}</span>
-                      <span className="font-semibold" style={{ color: w.color }}>{w.pct}%</span>
-                    </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all" style={{ width: `${w.pct}%`, background: w.color }}></div>
-                    </div>
-                  </div>
+            <h3 className="font-semibold text-gray-800 mb-4 text-center">🌍 Dampak EcoScan untuk Bumi</h3>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              {[
+                { icon: '♻️', value: '12.000+', label: 'Sampah Dipilah' },
+                { icon: '🌿', value: '2,4 Ton', label: 'CO₂ Dihemat' },
+                { icon: '👥', value: '1.000+', label: 'Pengguna Aktif' },
+              ].map((d, i) => (
+                <div key={i} className="bg-eco-50 rounded-xl p-3">
+                  <div className="text-2xl mb-1">{d.icon}</div>
+                  <div className="text-sm font-bold text-eco-700">{d.value}</div>
+                  <div className="text-xs text-eco-500 mt-0.5 leading-tight">{d.label}</div>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-gray-400 mt-3">Sumber: KLHK 2023</p>
           </div>
 
-          {/* Chart per provinsi */}
-          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-            <h3 className="font-semibold text-gray-800 mb-4">Produksi Sampah per Provinsi (ton/hari)</h3>
-            <div className="space-y-3">
-              {WASTE_PROBLEMS.map((p, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <span className="text-xs text-gray-500 w-28 shrink-0 truncate">{p.province}</span>
-                  <div className="flex-1">
-                    <div className="h-6 bg-gray-50 rounded-lg overflow-hidden relative">
-                      <div className="h-full rounded-lg flex items-center pl-2 transition-all"
-                        style={{ width: `${(p.ton/maxTon)*100}%`, background: p.color }}>
-                        <span className="text-white text-xs font-semibold">{p.ton.toLocaleString()}</span>
-                      </div>
-                    </div>
+          {/* Testimonials */}
+          <div className="space-y-3">
+            {TESTIMONIALS.map((t, i) => (
+              <div key={i} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-9 h-9 bg-eco-100 rounded-full flex items-center justify-center text-lg">{t.emoji}</div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">{t.name}</p>
+                    <p className="text-xs text-gray-400">{t.city}</p>
                   </div>
+                  <div className="ml-auto text-yellow-400 text-sm">★★★★★</div>
                 </div>
-              ))}
-            </div>
-            <p className="text-xs text-gray-400 mt-3">Sumber: BPS 2023</p>
+                <p className="text-xs text-gray-600 leading-relaxed">"{t.text}"</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
