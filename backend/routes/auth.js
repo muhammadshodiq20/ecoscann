@@ -130,7 +130,13 @@ router.post('/login', [
 
 // ─── GET /api/auth/me ──────────────────────────────────────────────
 router.get('/me', authMiddleware, async (req, res) => {
-  res.json({ user: req.user });
+  try {
+    const user = await require('../models/User').findById(req.user._id)
+      .select('-password');
+    res.json({ user });
+  } catch (err) {
+    res.json({ user: req.user });
+  }
 });
 
 // ─── POST /api/auth/logout ─────────────────────────────────────────

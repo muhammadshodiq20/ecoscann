@@ -1,103 +1,93 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { Link, useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 
 export default function ProfilePage() {
   const { user, logout, updateUser } = useAuth()
   const navigate = useNavigate()
-  const [editMode, setEditMode] = useState(false)
-  const [pwMode, setPwMode] = useState(false)
-  const [name, setName] = useState(user?.name || '')
-  const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmNew: '' })
-  const [loading, setLoading] = useState(false)
-  const [msg, setMsg] = useState({ type: '', text: '' })
+  const [badges, setBadges]   = useState([])
+  const [editing, setEditing] = useState(false)
+  const [name, setName]       = useState(user?.name || '')
+  const [saving, setSaving]   = useState(false)
+  const [msg, setMsg]         = useState('')
+
+  const level     = (user?.ecoPoints || 0) >= 500 ? 'Eco Master' : (user?.ecoPoints || 0) >= 200 ? 'Eco Warrior' : (user?.ecoPoints || 0) >= 50 ? 'Eco Starter' : 'Pemula'
+  const levelEmoji= (user?.ecoPoints || 0) >= 500 ? '👑' : (user?.ecoPoints || 0) >= 200 ? '🥇' : (user?.ecoPoints || 0) >= 50 ? '🌱' : '🌿'
+
+  useEffect(() => {
+    api.get('/api/tips/badges')
+      .then(r => setBadges(r.data.badges || []))
+      .catch(() => {})
+  }, [])
+
+  const handleSave = async () => {
+    if (!name.trim()) return
+    setSaving(true)
+    try {
+      const r = await api.put('/api/user/profile', { name: name.trim() })
+      updateUser({ name: name.trim() })
+      setMsg('Profil berhasil diperbarui! ✅')
+      setEditing(false)
+      setTimeout(() => setMsg(''), 3000)
+    } catch (e) {
+      setMsg('Gagal memperbarui profil')
+    }
+    setSaving(false)
+  }
 
   const handleLogout = () => {
-    logout()
-    navigate('/login')
+    if (confirm('Yakin ingin keluar dari EcoScan?')) logout()
   }
-
-  const handleSaveName = async () => {
-    if (!name.trim() || name.length < 2) { setMsg({ type: 'error', text: 'Nama minimal 2 karakter.' }); return }
-    setLoading(true); setMsg({ type: '', text: '' })
-    try {
-      const res = await api.put('/api/user/profile', { name })
-      updateUser({ name: res.data.user.name })
-      setEditMode(false)
-      setMsg({ type: 'success', text: 'Nama berhasil diperbarui!' })
-    } catch (err) {
-      setMsg({ type: 'error', text: err.response?.data?.error || 'Gagal memperbarui nama.' })
-    } finally { setLoading(false) }
-  }
-
-  const handleChangePw = async (e) => {
-    e.preventDefault()
-    if (pwForm.newPassword !== pwForm.confirmNew) { setMsg({ type: 'error', text: 'Konfirmasi password baru tidak cocok.' }); return }
-    if (pwForm.newPassword.length < 6) { setMsg({ type: 'error', text: 'Password baru minimal 6 karakter.' }); return }
-    setLoading(true); setMsg({ type: '', text: '' })
-    try {
-      await api.put('/api/user/password', { currentPassword: pwForm.currentPassword, newPassword: pwForm.newPassword })
-      setPwForm({ currentPassword: '', newPassword: '', confirmNew: '' })
-      setPwMode(false)
-      setMsg({ type: 'success', text: 'Password berhasil diubah!' })
-    } catch (err) {
-      setMsg({ type: 'error', text: err.response?.data?.error || 'Gagal mengubah password.' })
-    } finally { setLoading(false) }
-  }
-
-  const initials = user?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'EC'
-  const level = (user?.totalScans || 0) >= 100 ? 'Eco Champion' : (user?.totalScans || 0) >= 50 ? 'Eco Warrior' : 'Eco Starter'
-  const levelEmoji = (user?.totalScans || 0) >= 100 ? '🏆' : (user?.totalScans || 0) >= 50 ? '🥈' : '🌱'
 
   return (
-    <div className="p-4 space-y-4">
-      {/* Profile header */}
-      <div className="card p-5 text-center">
-        <div className="w-20 h-20 bg-eco-500 rounded-full flex items-center justify-center mx-auto mb-3 text-white text-2xl font-bold">
-          {initials}
+    <div className="p-4 space-y-4 pb-6">
+      {/* Header profile */}
+      <div className="rounded-3xl p-5 text-white relative overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, #085041 0%, #1D9E75 100%)' }}>
+        <div className="absolute -top-8 -right-8 w-32 h-32 bg-white/10 rounded-full"/>
+        <div className="relative flex items-center gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-white/20 border-2 border-white/30 flex items-center justify-center text-3xl shrink-0">
+            {user?.name?.charAt(0)?.toUpperCase() || '?'}
+          </div>
+          <div className="flex-1 min-w-0">
+            {editing ? (
+              <div className="flex gap-2">
+                <input value={name} onChange={e => setName(e.target.value)}
+                  className="flex-1 bg-white/20 text-white placeholder-white/50 border border-white/30 rounded-lg px-2 py-1 text-sm outline-none"
+                  placeholder="Nama lengkap"/>
+                <button onClick={handleSave} disabled={saving}
+                  className="bg-white text-eco-600 rounded-lg px-2 py-1 text-xs font-semibold">
+                  {saving ? '...' : 'Simpan'}
+                </button>
+                <button onClick={() => setEditing(false)}
+                  className="bg-white/20 text-white rounded-lg px-2 py-1 text-xs">Batal</button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <h2 className="font-bold text-lg text-white truncate">{user?.name}</h2>
+                <button onClick={() => setEditing(true)} className="text-white/60 hover:text-white text-sm">✏️</button>
+              </div>
+            )}
+            <p className="text-white/70 text-sm truncate">{user?.email}</p>
+            <span className="inline-block mt-1 text-xs bg-white/20 px-2 py-0.5 rounded-full">
+              {levelEmoji} {level}
+            </span>
+          </div>
         </div>
-        {editMode ? (
-          <div className="flex gap-2 max-w-xs mx-auto mb-2">
-            <input className="input-field text-center text-sm" value={name} onChange={e => setName(e.target.value)} placeholder="Nama kamu" />
-            <button onClick={handleSaveName} disabled={loading} className="btn-primary px-3 py-2 text-sm shrink-0">
-              {loading ? '...' : '✓'}
-            </button>
-            <button onClick={() => { setEditMode(false); setName(user?.name || '') }} className="btn-secondary px-3 py-2 text-sm shrink-0">✕</button>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center gap-2 mb-1">
-            <h2 className="text-xl font-bold text-gray-800">{user?.name}</h2>
-            <button onClick={() => setEditMode(true)} className="text-gray-400 hover:text-eco-500 transition-colors">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-              </svg>
-            </button>
-          </div>
-        )}
-        <p className="text-sm text-gray-400">{user?.email}</p>
-        <div className="flex items-center justify-center gap-1 mt-2">
-          <span className="text-lg">{levelEmoji}</span>
-          <span className="text-sm font-medium text-eco-600">{level}</span>
-        </div>
-
-        {msg.text && (
-          <div className={`mt-3 text-xs px-3 py-2 rounded-lg ${msg.type === 'success' ? 'bg-eco-50 text-eco-700' : 'bg-red-50 text-red-600'}`}>
-            {msg.text}
-          </div>
-        )}
+        {msg && <p className="mt-3 text-xs text-white/80 bg-white/10 rounded-lg px-3 py-2">{msg}</p>}
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-3">
         {[
-          { label: 'Total Scan', val: user?.totalScans || 0, icon: '📊' },
-          { label: 'EcoPoints', val: user?.ecoPoints || 0, icon: '⭐' },
-          { label: 'CO₂ Dihemat', val: `${(user?.carbonSaved || 0).toFixed(1)}kg`, icon: '🌍' }
+          { label: 'Total Scan',  value: user?.totalScans || 0,  emoji: '📷' },
+          { label: 'EcoPoints',   value: user?.ecoPoints || 0,    emoji: '⭐' },
+          { label: 'CO₂ Hemat',   value: `${parseFloat((user?.carbonSaved||0).toFixed(1))}kg`, emoji: '🌿' },
         ].map((s, i) => (
           <div key={i} className="card p-3 text-center">
-            <p className="text-lg">{s.icon}</p>
-            <p className="text-lg font-bold text-gray-800 mt-0.5">{s.val}</p>
+            <p className="text-xl mb-1">{s.emoji}</p>
+            <p className="text-lg font-bold text-eco-700">{s.value}</p>
             <p className="text-xs text-gray-400">{s.label}</p>
           </div>
         ))}
@@ -105,74 +95,79 @@ export default function ProfilePage() {
 
       {/* Badges */}
       <div className="card p-4">
-        <h3 className="font-semibold text-gray-700 mb-3">Badge Kamu</h3>
-        {user?.badges?.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {user.badges.map((badge, i) => (
-              <span key={i} className="px-3 py-1 bg-eco-50 text-eco-700 text-xs rounded-full font-medium border border-eco-100">{badge}</span>
-            ))}
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-gray-800">🏅 Badge Kamu</h3>
+          <Link to="/tips" className="text-xs text-eco-600 font-medium">Lihat semua →</Link>
+        </div>
+        {badges.length === 0 ? (
+          <div className="text-center py-4">
+            <p className="text-3xl mb-2">🏅</p>
+            <p className="text-sm text-gray-400">Belum ada badge. Terus scan untuk dapat badge!</p>
+            <Link to="/scan" className="inline-block mt-2 text-xs text-eco-600 font-medium">Scan sekarang →</Link>
           </div>
         ) : (
-          <div className="text-center py-4">
-            <p className="text-2xl mb-1">🎖️</p>
-            <p className="text-xs text-gray-400">Belum ada badge. Terus scan untuk dapatkan badge pertamamu!</p>
+          <div className="flex flex-wrap gap-2">
+            {badges.map(b => (
+              <div key={b.id} className="bg-eco-50 border border-eco-100 rounded-xl px-3 py-2 flex items-center gap-1.5">
+                <span className="text-lg">{b.emoji}</span>
+                <span className="text-xs font-medium text-eco-700">{b.name}</span>
+              </div>
+            ))}
           </div>
         )}
       </div>
 
-      {/* Ganti password */}
-      <div className="card p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-gray-700">Keamanan Akun</h3>
-          <button onClick={() => { setPwMode(!pwMode); setMsg({ type: '', text: '' }) }}
-            className="text-xs text-eco-600 font-medium hover:underline">
-            {pwMode ? 'Batal' : 'Ganti Password'}
-          </button>
-        </div>
-        {pwMode && (
-          <form onSubmit={handleChangePw} className="space-y-3 fade-in">
-            <input type="password" className="input-field" placeholder="Password lama" value={pwForm.currentPassword} onChange={e => setPwForm({ ...pwForm, currentPassword: e.target.value })} />
-            <input type="password" className="input-field" placeholder="Password baru (min. 6 + angka)" value={pwForm.newPassword} onChange={e => setPwForm({ ...pwForm, newPassword: e.target.value })} />
-            <input type="password" className="input-field" placeholder="Konfirmasi password baru" value={pwForm.confirmNew} onChange={e => setPwForm({ ...pwForm, confirmNew: e.target.value })} />
-            <button type="submit" disabled={loading} className="btn-primary w-full text-sm py-2">
-              {loading ? 'Menyimpan...' : 'Simpan Password Baru'}
-            </button>
-          </form>
-        )}
-        {!pwMode && (
-          <p className="text-xs text-gray-400">Password terakhir diubah saat pembuatan akun. Disarankan ganti password secara berkala.</p>
-        )}
+      {/* Menu */}
+      <div className="card overflow-hidden">
+        {[
+          { icon: '🏆', label: 'Leaderboard & Poin', to: '/tips', note: `#${user?.rank || '?'} peringkatmu` },
+          { icon: '💡', label: 'Tips & Tantangan',   to: '/tips', note: `${user?.ecoPoints || 0} pts` },
+          { icon: '📊', label: 'Statistik Scan',     to: '/dashboard', note: `${user?.totalScans || 0} scan` },
+        ].map((m, i) => (
+          <Link key={i} to={m.to}
+            className="flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 active:bg-gray-100 transition-colors border-b border-gray-50 last:border-0">
+            <span className="text-xl w-8">{m.icon}</span>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-700">{m.label}</p>
+              <p className="text-xs text-gray-400">{m.note}</p>
+            </div>
+            <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+            </svg>
+          </Link>
+        ))}
       </div>
 
-      {/* Info akun */}
+      {/* Info Akun */}
       <div className="card p-4">
-        <h3 className="font-semibold text-gray-700 mb-3">Info Akun</h3>
-        <div className="space-y-2">
-          {[
-            { label: 'Email', val: user?.email },
-            { label: 'Bergabung', val: user?.createdAt ? new Date(user.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-' },
-            { label: 'Login terakhir', val: user?.lastLogin ? new Date(user.lastLogin).toLocaleDateString('id-ID', { day: 'numeric', month: 'long' }) : '-' }
-          ].map((item, i) => (
-            <div key={i} className="flex justify-between text-sm">
-              <span className="text-gray-400">{item.label}</span>
-              <span className="text-gray-700 font-medium">{item.val}</span>
-            </div>
-          ))}
+        <h3 className="font-semibold text-gray-800 mb-3">ℹ️ Info Akun</h3>
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-gray-500">Email</span>
+            <span className="font-medium text-gray-700 truncate max-w-48">{user?.email}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">Member sejak</span>
+            <span className="font-medium text-gray-700">
+              {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }) : '-'}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">Level</span>
+            <span className="font-medium text-eco-600">{levelEmoji} {level}</span>
+          </div>
         </div>
       </div>
 
       {/* Logout */}
-      <button
-        onClick={handleLogout}
-        className="w-full py-3 px-4 rounded-xl border border-red-200 text-red-500 font-medium text-sm hover:bg-red-50 active:scale-95 transition-all flex items-center justify-center gap-2"
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-        </svg>
-        Keluar dari Akun
+      <button onClick={handleLogout}
+        className="w-full py-3.5 rounded-xl font-semibold text-red-500 bg-red-50 border border-red-100 hover:bg-red-100 transition-all active:scale-95">
+        🚪 Keluar dari EcoScan
       </button>
 
-      <p className="text-center text-xs text-gray-300 pb-2">EcoScan v1.0.0 · Dibuat dengan 💚 untuk bumi</p>
+      <p className="text-center text-xs text-gray-300 pb-2">
+        EcoScan v3.0 · Coding Camp DBS Foundation 2026
+      </p>
     </div>
   )
 }

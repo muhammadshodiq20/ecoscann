@@ -55,6 +55,7 @@ app.use('/api/scan', require('./routes/scan'));
 app.use('/api/food', require('./routes/food'));
 app.use('/api/stats', require('./routes/stats'));
 app.use('/api/user', require('./routes/user'));
+app.use('/api/tips', require('./routes/tips'));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

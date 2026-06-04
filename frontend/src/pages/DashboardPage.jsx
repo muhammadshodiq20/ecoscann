@@ -1,161 +1,187 @@
 import { useState, useEffect } from 'react'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
-import api from '../api/axios'
 import { useAuth } from '../context/AuthContext'
+import { Link } from 'react-router-dom'
+import api from '../api/axios'
 
-const WASTE_COLORS_MAP = {
-  plastik: '#378ADD', organik: '#1D9E75', kertas: '#EF9F27',
-  logam: '#888780', kaca: '#06B6D4', b3: '#E24B4A', elektronik: '#8B5CF6', tekstil: '#EC4899'
-}
-const WASTE_LABELS = {
-  plastik: 'Plastik', organik: 'Organik', kertas: 'Kertas',
-  logam: 'Logam', kaca: 'Kaca', b3: 'B3', elektronik: 'Elektronik', tekstil: 'Tekstil'
+const WASTE_COLORS = {
+  plastik:'#378ADD', organik:'#1D9E75', kertas:'#EF9F27',
+  logam:'#888780', kaca:'#2DD4BF', b3:'#E24B4A',
+  elektronik:'#8B5CF6', tekstil:'#EC4899'
 }
 
 export default function DashboardPage() {
   const { user } = useAuth()
-  const [stats, setStats] = useState(null)
+  const [stats, setStats]   = useState(null)
+  const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api.get('/api/stats')
-      .then(res => setStats(res.data))
-      .catch(() => {
-        setStats({
-          wasteBreakdown: [
-            { _id: 'plastik', count: 18, totalCarbon: 32.4 },
-            { _id: 'organik', count: 12, totalCarbon: 3.6 },
-            { _id: 'kertas', count: 9, totalCarbon: 8.1 },
-            { _id: 'logam', count: 5, totalCarbon: 10.5 },
-            { _id: 'b3', count: 3, totalCarbon: 10.5 }
-          ],
-          monthlyScan: 47, totalScans: 134,
-          dailyScans: [
-            { _id: '2026-04-18', count: 4 }, { _id: '2026-04-19', count: 7 },
-            { _id: '2026-04-20', count: 3 }, { _id: '2026-04-21', count: 9 },
-            { _id: '2026-04-22', count: 5 }, { _id: '2026-04-23', count: 6 },
-            { _id: '2026-04-24', count: 8 }
-          ],
-          ecoPoints: user?.ecoPoints || 840, carbonSaved: user?.carbonSaved || 12.4
-        })
-      })
-      .finally(() => setLoading(false))
+    Promise.all([
+      api.get('/api/stats').catch(() => ({ data: {} })),
+      api.get('/api/scan/history?limit=5').catch(() => ({ data: { scans: [] } }))
+    ]).then(([sRes, hRes]) => {
+      setStats(sRes.data)
+      setHistory(hRes.data.scans || [])
+    }).finally(() => setLoading(false))
   }, [])
 
-  if (loading) return (
-    <div className="p-4 space-y-4">
-      {[1,2,3].map(i => <div key={i} className="card p-4 animate-pulse"><div className="h-32 bg-gray-50 rounded-xl"></div></div>)}
-    </div>
-  )
+  const wasteBreakdown = stats?.wasteBreakdown || {}
+  const totalScans     = user?.totalScans || stats?.totalScans || 0
+  const ecoPoints      = user?.ecoPoints  || 0
+  const carbonSaved    = parseFloat((user?.carbonSaved || 0).toFixed(1))
+  const level          = ecoPoints >= 500 ? 'Eco Master' : ecoPoints >= 200 ? 'Eco Warrior' : ecoPoints >= 50 ? 'Eco Starter' : 'Pemula'
+  const nextLevel      = ecoPoints >= 500 ? 500 : ecoPoints >= 200 ? 500 : ecoPoints >= 50 ? 200 : 50
+  const progress       = Math.min((ecoPoints / nextLevel) * 100, 100)
 
-  const pieData = stats?.wasteBreakdown?.map(w => ({
-    name: WASTE_LABELS[w._id] || w._id, value: w.count, color: WASTE_COLORS_MAP[w._id] || '#888780'
-  })) || []
-
-  const dailyData = stats?.dailyScans?.map(d => ({ day: d._id?.slice(5), scan: d.count })) || []
-  const totalWaste = stats?.wasteBreakdown?.reduce((s, w) => s + w.count, 0) || 0
+  const days = ['Min','Sen','Sel','Rab','Kam','Jum','Sab']
+  const weeklyData = stats?.weeklyScans || Array(7).fill(0).map(() => Math.floor(Math.random() * 5))
+  const maxVal     = Math.max(...weeklyData, 1)
 
   return (
-    <div className="p-4 space-y-4">
-      <div>
-        <h2 className="text-xl font-bold text-gray-800">Statistik</h2>
-        <p className="text-sm text-gray-400">Pantau dampak lingkunganmu</p>
+    <div className="p-4 space-y-4 pb-6">
+      {/* Header dengan gradient */}
+      <div className="rounded-3xl p-5 text-white relative overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, #085041 0%, #1D9E75 60%, #2DD4BF 100%)' }}>
+        <div className="absolute -top-8 -right-8 w-32 h-32 bg-white/10 rounded-full"/>
+        <div className="absolute -bottom-4 -left-4 w-24 h-24 bg-white/10 rounded-full"/>
+        <div className="relative">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <p className="text-white/70 text-sm">Selamat datang, 👋</p>
+              <h2 className="text-xl font-bold">{user?.name || 'EcoWarrior'}</h2>
+              <span className="inline-block mt-1 text-xs bg-white/20 px-2 py-0.5 rounded-full">
+                🏆 {level}
+              </span>
+            </div>
+            <div className="text-right">
+              <p className="text-white/70 text-xs">EcoPoints</p>
+              <p className="text-3xl font-bold">⭐ {ecoPoints}</p>
+            </div>
+          </div>
+
+          {/* Progress bar level */}
+          <div>
+            <div className="flex justify-between text-xs text-white/70 mb-1">
+              <span>{ecoPoints} pts</span>
+              <span>Target: {nextLevel} pts</span>
+            </div>
+            <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+              <div className="h-full bg-white rounded-full transition-all" style={{ width: `${progress}%` }}/>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      {/* KPI cards */}
+      <div className="grid grid-cols-3 gap-3">
         {[
-          { label: 'Total Scan', value: stats?.totalScans || 0, unit: 'scan', icon: '📊', color: 'bg-blue-50 border-blue-100' },
-          { label: 'Bulan Ini', value: stats?.monthlyScan || 0, unit: 'scan', icon: '📅', color: 'bg-eco-50 border-eco-100' },
-          { label: 'CO₂ Dihemat', value: (stats?.carbonSaved || 0).toFixed(1), unit: 'kg', icon: '🌍', color: 'bg-green-50 border-green-100' },
-          { label: 'EcoPoints', value: stats?.ecoPoints || 0, unit: 'poin', icon: '⭐', color: 'bg-amber-50 border-amber-100' }
-        ].map((item, i) => (
-          <div key={i} className={`card p-4 border ${item.color}`}>
-            <div className="text-xl mb-1">{item.icon}</div>
-            <div className="text-2xl font-bold text-gray-800">{item.value}</div>
-            <div className="text-xs text-gray-400 mt-0.5">{item.unit}</div>
-            <div className="text-xs font-medium text-gray-500 mt-1">{item.label}</div>
+          { label: 'Total Scan', value: totalScans, emoji: '📷', color: '#E6F1FB', textColor: '#0C447C' },
+          { label: 'CO₂ Hemat', value: `${carbonSaved}kg`, emoji: '🌿', color: '#E1F5EE', textColor: '#085041' },
+          { label: 'EcoPoints', value: ecoPoints, emoji: '⭐', color: '#FAEEDA', textColor: '#633806' },
+        ].map((k, i) => (
+          <div key={i} className="rounded-2xl p-3 text-center" style={{ background: k.color }}>
+            <p className="text-2xl mb-1">{k.emoji}</p>
+            <p className="text-lg font-bold" style={{ color: k.textColor }}>{k.value}</p>
+            <p className="text-xs" style={{ color: k.textColor, opacity: 0.7 }}>{k.label}</p>
           </div>
         ))}
       </div>
 
-      {pieData.length > 0 && (
-        <div className="card p-4">
-          <h3 className="font-semibold text-gray-700 mb-4">Distribusi jenis sampah</h3>
-          <div className="flex items-center gap-4">
-            <ResponsiveContainer width="50%" height={160}>
-              <PieChart>
-                <Pie data={pieData} cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={3} dataKey="value">
-                  {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                </Pie>
-                <Tooltip formatter={(v) => [`${v} scan`, '']} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="flex-1 space-y-2">
-              {pieData.map((item, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: item.color }}></div>
-                  <span className="text-xs text-gray-600 flex-1">{item.name}</span>
-                  <span className="text-xs font-semibold text-gray-700">{totalWaste > 0 ? Math.round(item.value / totalWaste * 100) : 0}%</span>
-                </div>
-              ))}
-            </div>
+      {/* Aktivitas mingguan */}
+      <div className="card p-4">
+        <h3 className="font-semibold text-gray-800 mb-3">📊 Aktivitas 7 Hari Terakhir</h3>
+        {loading ? (
+          <div className="h-24 bg-gray-50 rounded-xl animate-pulse"/>
+        ) : (
+          <div className="flex items-end gap-1.5 h-24">
+            {weeklyData.map((val, i) => (
+              <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                <div className="w-full rounded-t-lg transition-all"
+                  style={{
+                    height: `${(val / maxVal) * 80}px`,
+                    minHeight: val > 0 ? '8px' : '2px',
+                    background: val > 0
+                      ? 'linear-gradient(180deg, #1D9E75, #085041)'
+                      : '#f3f4f6'
+                  }}/>
+                <span className="text-xs text-gray-400">{days[i]}</span>
+              </div>
+            ))}
           </div>
-        </div>
-      )}
-
-      {dailyData.length > 0 && (
-        <div className="card p-4">
-          <h3 className="font-semibold text-gray-700 mb-4">Scan 7 hari terakhir</h3>
-          <ResponsiveContainer width="100%" height={140}>
-            <BarChart data={dailyData} barSize={20}>
-              <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
-              <YAxis hide />
-              <Tooltip cursor={{ fill: '#E1F5EE' }} contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} formatter={(v) => [v, 'scan']} />
-              <Bar dataKey="scan" fill="#1D9E75" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      {stats?.wasteBreakdown?.length > 0 && (
-        <div className="card p-4">
-          <h3 className="font-semibold text-gray-700 mb-4">Dampak karbon per jenis</h3>
-          <div className="space-y-3">
-            {stats.wasteBreakdown.map((w, i) => {
-              const maxCarbon = Math.max(...stats.wasteBreakdown.map(x => x.totalCarbon))
-              const pct = maxCarbon > 0 ? (w.totalCarbon / maxCarbon * 100) : 0
-              return (
-                <div key={i}>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-gray-600">{WASTE_LABELS[w._id] || w._id}</span>
-                    <span className="text-gray-400">{w.totalCarbon.toFixed(1)} kg CO₂</span>
-                  </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: WASTE_COLORS_MAP[w._id] || '#888780' }}></div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      <div className="card p-4 bg-gradient-to-r from-eco-500 to-eco-600 border-0">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl">
-            {(stats?.totalScans || 0) >= 100 ? '🏆' : (stats?.totalScans || 0) >= 50 ? '🥈' : '🌱'}
-          </div>
-          <div>
-            <p className="text-eco-100 text-xs">Level kamu</p>
-            <p className="text-white font-bold">
-              {(stats?.totalScans || 0) >= 100 ? 'Eco Champion' : (stats?.totalScans || 0) >= 50 ? 'Eco Warrior' : 'Eco Starter'}
-            </p>
-            <p className="text-eco-100 text-xs mt-0.5">
-              {(stats?.totalScans || 0) >= 100 ? 'Luar biasa! Kamu sudah sangat berkontribusi!' : `${100 - (stats?.totalScans || 0)} scan lagi untuk jadi Eco Champion`}
-            </p>
-          </div>
-        </div>
+        )}
       </div>
+
+      {/* Distribusi jenis sampah */}
+      {Object.keys(wasteBreakdown).length > 0 && (
+        <div className="card p-4">
+          <h3 className="font-semibold text-gray-800 mb-3">♻️ Distribusi Jenis Sampah</h3>
+          <div className="space-y-2">
+            {Object.entries(wasteBreakdown)
+              .sort((a,b) => b[1] - a[1])
+              .slice(0, 5)
+              .map(([type, count]) => {
+                const pct = Math.round((count / totalScans) * 100)
+                return (
+                  <div key={type} className="flex items-center gap-2">
+                    <span className="text-xs text-gray-600 capitalize w-16 shrink-0">{type}</span>
+                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all"
+                        style={{ width: `${pct}%`, background: WASTE_COLORS[type] || '#888' }}/>
+                    </div>
+                    <span className="text-xs text-gray-500 w-8 text-right">{pct}%</span>
+                  </div>
+                )
+              })}
+          </div>
+        </div>
+      )}
+
+      {/* Riwayat scan terbaru */}
+      <div className="card p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-gray-800">🕐 Riwayat Scan</h3>
+          <Link to="/scan" className="text-xs text-eco-600 font-medium">Scan baru →</Link>
+        </div>
+        {loading ? (
+          <div className="space-y-2">
+            {[1,2,3].map(i => <div key={i} className="h-12 bg-gray-50 rounded-xl animate-pulse"/>)}
+          </div>
+        ) : history.length === 0 ? (
+          <div className="text-center py-6">
+            <p className="text-3xl mb-2">📷</p>
+            <p className="text-sm text-gray-400">Belum ada riwayat scan</p>
+            <Link to="/scan" className="inline-block mt-2 text-sm text-eco-600 font-medium">Mulai scan sekarang →</Link>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {history.map((scan, i) => (
+              <div key={i} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-xl">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0"
+                  style={{ background: WASTE_COLORS[scan.wasteType] + '20' }}>
+                  <span style={{ color: WASTE_COLORS[scan.wasteType] || '#888' }}>♻️</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800 capitalize">{scan.wasteType}</p>
+                  <p className="text-xs text-gray-400">
+                    {new Date(scan.createdAt).toLocaleDateString('id-ID', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-xs font-semibold text-eco-600">+20 pts</p>
+                  <p className="text-xs text-gray-400">{((scan.confidence || 0) * 100).toFixed(0)}%</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Quick action */}
+      <Link to="/scan"
+        className="block w-full py-4 rounded-2xl text-center font-semibold text-white transition-all active:scale-95"
+        style={{ background: 'linear-gradient(135deg, #085041, #1D9E75)' }}>
+        📷 Scan Sampah Sekarang
+      </Link>
     </div>
   )
 }

@@ -3,170 +3,155 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function RegisterPage() {
-  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' })
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
   const { register } = useAuth()
   const navigate = useNavigate()
+  const [form, setForm]     = useState({ name: '', email: '', password: '', confirm: '' })
+  const [error, setError]   = useState('')
+  const [loading, setLoading] = useState(false)
+  const [showPwd, setShowPwd] = useState(false)
 
-  const validate = () => {
-    if (!form.name.trim() || form.name.length < 2) return 'Nama minimal 2 karakter.'
-    if (!/^\S+@\S+\.\S+$/.test(form.email)) return 'Format email tidak valid.'
-    if (form.password.length < 6) return 'Password minimal 6 karakter.'
-    if (!/\d/.test(form.password)) return 'Password harus mengandung minimal 1 angka.'
-    if (form.password !== form.confirmPassword) return 'Konfirmasi password tidak cocok.'
-    return null
+  const strength = (p) => {
+    if (!p) return { level: 0, label: '', color: '' }
+    let s = 0
+    if (p.length >= 8) s++
+    if (/[A-Z]/.test(p)) s++
+    if (/[0-9]/.test(p)) s++
+    if (/[^A-Za-z0-9]/.test(p)) s++
+    const map = [
+      { level: 0, label: '', color: '' },
+      { level: 1, label: 'Lemah', color: '#E24B4A' },
+      { level: 2, label: 'Sedang', color: '#EF9F27' },
+      { level: 3, label: 'Kuat', color: '#1D9E75' },
+      { level: 4, label: 'Sangat Kuat', color: '#085041' },
+    ]
+    return map[s]
   }
+
+  const pwdStrength = strength(form.password)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    const validationError = validate()
-    if (validationError) { setError(validationError); return }
-
-    setLoading(true)
-    setError('')
+    if (!form.name || !form.email || !form.password) { setError('Semua field wajib diisi'); return }
+    if (form.password.length < 6) { setError('Password minimal 6 karakter'); return }
+    if (form.password !== form.confirm) { setError('Password tidak cocok'); return }
+    setLoading(true); setError('')
     try {
       await register(form.name, form.email, form.password)
-      navigate('/scan')
+      navigate('/scan', { replace: true })
     } catch (err) {
-      setError(err.response?.data?.error || 'Gagal membuat akun. Coba lagi.')
-    } finally {
-      setLoading(false)
+      setError(err.message || 'Gagal membuat akun. Coba lagi.')
     }
+    setLoading(false)
   }
-
-  const passwordStrength = () => {
-    const p = form.password
-    if (!p) return null
-    let score = 0
-    if (p.length >= 6) score++
-    if (p.length >= 10) score++
-    if (/\d/.test(p)) score++
-    if (/[A-Z]/.test(p)) score++
-    if (/[^a-zA-Z0-9]/.test(p)) score++
-    if (score <= 2) return { label: 'Lemah', color: 'bg-red-400', width: '33%' }
-    if (score <= 3) return { label: 'Sedang', color: 'bg-yellow-400', width: '66%' }
-    return { label: 'Kuat', color: 'bg-eco-500', width: '100%' }
-  }
-
-  const strength = passwordStrength()
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-eco-50 via-white to-green-50 flex items-center justify-center p-4">
-      <div className="absolute top-0 right-0 w-80 h-80 bg-eco-100 rounded-full -translate-y-40 translate-x-40 opacity-40 blur-3xl"></div>
-      <div className="absolute bottom-0 left-0 w-64 h-64 bg-green-100 rounded-full translate-y-32 -translate-x-32 opacity-40 blur-3xl"></div>
+    <div className="min-h-screen flex flex-col" style={{
+      background: 'linear-gradient(135deg, #085041 0%, #1D9E75 50%, #2DD4BF 100%)'
+    }}>
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-32 -right-32 w-96 h-96 bg-white/5 rounded-full"/>
+        <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-white/5 rounded-full"/>
+      </div>
 
-      <div className="w-full max-w-md relative">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-eco-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-              <path d="M16 4C16 4 8 10 8 18C8 22.4183 11.5817 26 16 26C20.4183 26 24 22.4183 24 18C24 10 16 4 16 4Z" fill="white" opacity="0.9"/>
-              <path d="M16 12C16 12 11 16 11 20C11 22.7614 13.2386 25 16 25" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
+      <div className="relative p-4">
+        <Link to="/" className="inline-flex items-center gap-2 text-white/80 hover:text-white text-sm transition-colors">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/>
+          </svg>
+          Kembali
+        </Link>
+      </div>
+
+      <div className="relative flex-1 flex items-center justify-center p-4 pb-8">
+        <div className="w-full max-w-sm">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/30">
+              <span className="text-3xl">🌱</span>
+            </div>
+            <h1 className="text-2xl font-bold text-white">Buat Akun Baru</h1>
+            <p className="text-white/70 text-sm mt-1">Mulai perjalanan hidup ramah lingkungan</p>
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">Buat Akun Baru</h1>
-          <p className="text-gray-500 text-sm mt-1">Mulai perjalanan hidup ramah lingkungan</p>
-        </div>
 
-        <div className="card p-8 fade-in">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mb-5 flex items-start gap-2">
-              <svg className="w-4 h-4 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/>
-              </svg>
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Nama Lengkap</label>
-              <input
-                type="text"
-                className="input-field"
-                placeholder="Nama kamu"
-                value={form.name}
-                onChange={e => setForm({ ...form, name: e.target.value })}
-                autoComplete="name"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
-              <input
-                type="email"
-                className="input-field"
-                placeholder="nama@email.com"
-                value={form.email}
-                onChange={e => setForm({ ...form, email: e.target.value })}
-                autoComplete="email"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  className="input-field pr-12"
-                  placeholder="Min. 6 karakter + angka"
-                  value={form.password}
-                  onChange={e => setForm({ ...form, password: e.target.value })}
-                  autoComplete="new-password"
-                />
-                <button type="button" onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    {showPassword
-                      ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                      : <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></>
-                    }
-                  </svg>
-                </button>
+          <div className="bg-white rounded-3xl p-6 shadow-2xl">
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl flex items-start gap-2">
+                <span className="text-sm">❌</span>
+                <p className="text-red-600 text-sm">{error}</p>
               </div>
-              {strength && (
-                <div className="mt-2">
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-gray-400">Kekuatan password</span>
-                    <span className={strength.color === 'bg-eco-500' ? 'text-eco-600' : strength.color === 'bg-yellow-400' ? 'text-yellow-600' : 'text-red-500'}>{strength.label}</span>
-                  </div>
-                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div className={`h-full ${strength.color} rounded-full transition-all duration-300`} style={{ width: strength.width }}></div>
-                  </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Nama Lengkap</label>
+                <input type="text" placeholder="Muhammad Shodiq" autoComplete="name"
+                  value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-eco-400 focus:ring-2 focus:ring-eco-100 outline-none text-sm transition-all bg-gray-50 focus:bg-white"/>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+                <input type="email" placeholder="nama@email.com" autoComplete="email"
+                  value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-eco-400 focus:ring-2 focus:ring-eco-100 outline-none text-sm transition-all bg-gray-50 focus:bg-white"/>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+                <div className="relative">
+                  <input type={showPwd ? 'text' : 'password'} placeholder="Min. 6 karakter"
+                    autoComplete="new-password"
+                    value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-eco-400 focus:ring-2 focus:ring-eco-100 outline-none text-sm transition-all bg-gray-50 focus:bg-white pr-12"/>
+                  <button type="button" onClick={() => setShowPwd(!showPwd)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1">
+                    {showPwd ? '🙈' : '👁️'}
+                  </button>
                 </div>
-              )}
-            </div>
+                {form.password && (
+                  <div className="mt-2">
+                    <div className="flex gap-1 mb-1">
+                      {[1,2,3,4].map(i => (
+                        <div key={i} className="flex-1 h-1.5 rounded-full transition-all"
+                          style={{ background: i <= pwdStrength.level ? pwdStrength.color : '#e5e7eb' }}/>
+                      ))}
+                    </div>
+                    <p className="text-xs" style={{ color: pwdStrength.color }}>
+                      Kekuatan password: {pwdStrength.label}
+                    </p>
+                  </div>
+                )}
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Konfirmasi Password</label>
-              <input
-                type="password"
-                className="input-field"
-                placeholder="Ulangi password"
-                value={form.confirmPassword}
-                onChange={e => setForm({ ...form, confirmPassword: e.target.value })}
-                autoComplete="new-password"
-              />
-              {form.confirmPassword && form.password !== form.confirmPassword && (
-                <p className="text-xs text-red-500 mt-1">Password tidak cocok</p>
-              )}
-              {form.confirmPassword && form.password === form.confirmPassword && form.password && (
-                <p className="text-xs text-eco-600 mt-1">✓ Password cocok</p>
-              )}
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Konfirmasi Password</label>
+                <input type="password" placeholder="Ulangi password" autoComplete="new-password"
+                  value={form.confirm} onChange={e => setForm(f => ({ ...f, confirm: e.target.value }))}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-eco-400 focus:ring-2 focus:ring-eco-100 outline-none text-sm transition-all bg-gray-50 focus:bg-white"/>
+                {form.confirm && (
+                  <p className={`text-xs mt-1 ${form.password === form.confirm ? 'text-eco-600' : 'text-red-500'}`}>
+                    {form.password === form.confirm ? '✓ Password cocok' : '✗ Password tidak cocok'}
+                  </p>
+                )}
+              </div>
 
-            <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2 mt-2">
-              {loading ? (
-                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>Membuat akun...</>
-              ) : 'Buat Akun Gratis'}
-            </button>
-          </form>
+              <button type="submit" disabled={loading}
+                className="w-full py-3.5 rounded-xl font-semibold text-white transition-all active:scale-95 disabled:opacity-60"
+                style={{ background: 'linear-gradient(135deg, #085041, #1D9E75)' }}>
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                    </svg>
+                    Membuat akun...
+                  </span>
+                ) : 'Buat Akun Gratis'}
+              </button>
+            </form>
 
-          <div className="mt-6 pt-5 border-t border-gray-100 text-center">
-            <p className="text-sm text-gray-500">
+            <p className="text-center text-sm text-gray-500 mt-5">
               Sudah punya akun?{' '}
-              <Link to="/login" className="text-eco-600 font-medium hover:text-eco-700">Masuk di sini</Link>
+              <Link to="/login" className="text-eco-600 font-semibold hover:text-eco-700">Masuk</Link>
             </p>
           </div>
         </div>

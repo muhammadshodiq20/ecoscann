@@ -1,14 +1,18 @@
 import axios from 'axios'
 
 const getBaseURL = () => {
-  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL
+  const url = import.meta.env.VITE_API_URL
+  if (url) {
+    // Hapus trailing slash kalau ada
+    return url.replace(/\/$/, '')
+  }
   const hostname = window.location.hostname
   return `http://${hostname}:3002`
 }
 
 const api = axios.create({
   baseURL: getBaseURL(),
-  timeout: 90000, // 90 detik — HuggingFace free tier cold start bisa 30-60 detik
+  timeout: 90000,
   headers: { 'Content-Type': 'application/json' }
 })
 
