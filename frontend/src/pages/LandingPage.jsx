@@ -8,7 +8,14 @@ const WASTE_FACTS = [
   { emoji: '💸', stat: 'Rp 23 Triliun',  desc: 'kerugian ekonomi akibat sampah tahunan' },
 ]
 
-
+const WASTE_TYPES = [
+  { type: 'Plastik',    pct: 35, color: '#378ADD', emoji: '🧴' },
+  { type: 'Organik',    pct: 57, color: '#1D9E75', emoji: '🌿' },
+  { type: 'Kertas',     pct: 8,  color: '#EF9F27', emoji: '📰' },
+  { type: 'Logam',      pct: 3,  color: '#888780', emoji: '🥫' },
+  { type: 'B3',         pct: 2,  color: '#E24B4A', emoji: '⚠️' },
+  { type: 'Elektronik', pct: 1,  color: '#8B5CF6', emoji: '📱' },
+]
 
 const FEATURES = [
   { icon: '📷', title: 'Scan AI Instan',      desc: 'Foto sampah → AI klasifikasi otomatis ke 8 kategori dalam hitungan detik' },
@@ -19,7 +26,15 @@ const FEATURES = [
   { icon: '🌍', title: 'Dampak Nyata',        desc: 'Bergabung dengan ribuan pengguna yang bersama-sama jaga bumi' },
 ]
 
-
+const PROVINCES = ['DKI Jakarta', 'Jawa Barat', 'Jawa Timur', 'Jawa Tengah', 'Bali', 'Sumatera Utara']
+const WASTE_PROBLEMS = [
+  { province: 'DKI Jakarta',  ton: 7500, color: '#E24B4A' },
+  { province: 'Jawa Barat',   ton: 5800, color: '#EF9F27' },
+  { province: 'Jawa Timur',   ton: 5200, color: '#378ADD' },
+  { province: 'Jawa Tengah',  ton: 4100, color: '#1D9E75' },
+  { province: 'Bali',         ton: 1100, color: '#8B5CF6' },
+  { province: 'Sumatera Utara', ton: 3900, color: '#EC4899' },
+]
 
 export default function LandingPage() {
   const maxTon = Math.max(...WASTE_PROBLEMS.map(p => p.ton))
@@ -34,6 +49,14 @@ export default function LandingPage() {
             <span className="text-white text-sm">🌿</span>
           </div>
           <span className="font-bold text-eco-700 text-lg">EcoScan</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link to="/login" className="text-sm font-medium text-gray-600 hover:text-eco-600 px-3 py-1.5 transition-colors">
+            Masuk
+          </Link>
+          <Link to="/register" className="text-sm font-medium bg-eco-500 text-white px-4 py-1.5 rounded-lg hover:bg-eco-600 transition-colors">
+            Daftar Gratis
+          </Link>
         </div>
       </nav>
 
@@ -61,7 +84,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link to="/register"
               className="bg-white text-eco-700 font-semibold px-6 py-3.5 rounded-xl hover:bg-eco-50 transition-all active:scale-95 shadow-lg">
-               Mulai Gratis Sekarang
+              🚀 Mulai Gratis Sekarang
             </Link>
             <Link to="/login"
               className="bg-white/10 text-white font-medium px-6 py-3.5 rounded-xl border border-white/30 hover:bg-white/20 transition-all">
@@ -188,7 +211,7 @@ export default function LandingPage() {
           </p>
           <Link to="/register"
             className="block bg-eco-500 text-white font-semibold py-4 rounded-xl hover:bg-eco-600 transition-all active:scale-95 shadow-lg text-base">
-             Daftar Gratis Sekarang
+            🚀 Daftar Gratis Sekarang
           </Link>
           <Link to="/login" className="block text-sm text-gray-400 hover:text-eco-600 transition-colors mt-4">
             Sudah punya akun? Masuk
@@ -203,7 +226,7 @@ export default function LandingPage() {
           <span className="font-bold text-lg">EcoScan</span>
         </div>
         <p className="text-eco-200 text-xs mb-2">Aplikasi Pilah Sampah Cerdas Berbasis AI</p>
-        <p className="text-eco-300 text-xs">EcoScan · Coding Camp DBS Foundation</p>
+        <p className="text-eco-300 text-xs">© 2026 EcoScan · Coding Camp DBS Foundation · ecoscan-tau.vercel.app</p>
       </footer>
     </div>
   )
