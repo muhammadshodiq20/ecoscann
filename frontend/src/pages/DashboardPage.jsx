@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { Link } from 'react-router-dom'
 import api from '../api/axios'
@@ -15,7 +15,8 @@ export default function DashboardPage() {
   const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+  const fetchStats = useCallback(() => {
+    setLoading(true)
     Promise.all([
       api.get('/api/stats').catch(() => ({ data: {} })),
       api.get('/api/scan/history?limit=5').catch(() => ({ data: { scans: [] } }))
@@ -25,7 +26,29 @@ export default function DashboardPage() {
     }).finally(() => setLoading(false))
   }, [])
 
-  const wasteBreakdown = stats?.wasteBreakdown || {}
+  useEffect(() => {
+    fetchStats()
+    // Refresh data setiap kali halaman menjadi aktif (misal setelah balik dari scan)
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') fetchStats()
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [fetchStats])
+
+  // wasteBreakdown dari backend adalah array: [{ _id: 'plastik', count: 3 }, ...]
+  // Konversi ke object agar bisa dipakai di UI
+  const wasteBreakdown = (() => {
+    const raw = stats?.wasteBreakdown
+    if (!raw) return {}
+    if (Array.isArray(raw)) {
+      return raw.reduce((acc, item) => {
+        if (item._id) acc[item._id] = item.count
+        return acc
+      }, {})
+    }
+    return raw // sudah berbentuk object
+  })()
   const totalScans     = user?.totalScans || stats?.totalScans || 0
   const ecoPoints      = user?.ecoPoints  || 0
   const carbonSaved    = parseFloat((user?.carbonSaved || 0).toFixed(1))
@@ -34,8 +57,29 @@ export default function DashboardPage() {
   const progress       = Math.min((ecoPoints / nextLevel) * 100, 100)
 
   const days = ['Min','Sen','Sel','Rab','Kam','Jum','Sab']
-  const weeklyData = stats?.weeklyScans || Array(7).fill(0).map(() => Math.floor(Math.random() * 5))
-  const maxVal     = Math.max(...weeklyData, 1)
+
+  // Bangun weeklyData dari dailyScans backend (7 hari terakhir sesuai hari kalender)
+  const weeklyData = (() => {
+    const result = Array(7).fill(0)
+    const dailyScans = stats?.dailyScans || []
+    if (dailyScans.length > 0) {
+      const today = new Date()
+      dailyScans.forEach(({ _id, count }) => {
+        const scanDate = new Date(_id)
+        // Hitung berapa hari lalu dari hari ini
+        const diffDays = Math.round((today - scanDate) / (1000 * 60 * 60 * 24))
+        if (diffDays >= 0 && diffDays < 7) {
+          // Index: hari ini = indeks hari ini dalam minggu, mundur ke belakang
+          const todayIdx = today.getDay()   // 0=Min … 6=Sab
+          let idx = todayIdx - diffDays
+          if (idx < 0) idx += 7
+          result[idx] = count
+        }
+      })
+    }
+    return result
+  })()
+  const maxVal = Math.max(...weeklyData, 1)
 
   return (
     <div className="p-4 space-y-4 pb-6">
@@ -111,27 +155,27 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Distribusi jenis sampah */}
       {Object.keys(wasteBreakdown).length > 0 && (
         <div className="card p-4">
           <h3 className="font-semibold text-gray-800 mb-3">♻️ Distribusi Jenis Sampah</h3>
           <div className="space-y-2">
-            {Object.entries(wasteBreakdown)
-              .sort((a,b) => b[1] - a[1])
-              .slice(0, 5)
-              .map(([type, count]) => {
-                const pct = Math.round((count / totalScans) * 100)
+            {(() => {
+              const entries = Object.entries(wasteBreakdown).sort((a,b) => b[1] - a[1]).slice(0, 5)
+              const total = entries.reduce((s, [,c]) => s + c, 0) || 1
+              return entries.map(([type, count]) => {
+                const pct = Math.round((count / total) * 100)
                 return (
                   <div key={type} className="flex items-center gap-2">
-                    <span className="text-xs text-gray-600 capitalize w-16 shrink-0">{type}</span>
+                    <span className="text-xs text-gray-600 capitalize w-20 shrink-0">{type}</span>
                     <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div className="h-full rounded-full transition-all"
                         style={{ width: `${pct}%`, background: WASTE_COLORS[type] || '#888' }}/>
                     </div>
-                    <span className="text-xs text-gray-500 w-8 text-right">{pct}%</span>
+                    <span className="text-xs text-gray-500 w-10 text-right">{pct}%</span>
                   </div>
                 )
-              })}
+              })
+            })()}
           </div>
         </div>
       )}

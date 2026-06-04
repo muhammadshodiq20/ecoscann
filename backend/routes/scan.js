@@ -118,8 +118,8 @@ async function generateTips(wasteType) {
 // HuggingFace return: { status, prediction, confidence, message }
 // Tapi kode lama hanya baca data.prediction tanpa fallback ke data.class
 async function callAI(fileBuffer, filename, mimetype) {
-  const AI_URL = (process.env.AI_SERVICE_URL || '').trim().replace(/\/$/, '');
-  if (!AI_URL) throw new Error('AI_SERVICE_URL tidak diset');
+  // Default ke endpoint HuggingFace resmi, fallback dari env var
+  const AI_URL = ((process.env.AI_SERVICE_URL || 'https://byuuuu-ecoscan-api.hf.space')).trim().replace(/\/$/, '');
 
   const formData = new FormData();
   // BUG FIX: Key field harus 'file' sesuai dokumentasi HuggingFace
@@ -292,8 +292,7 @@ router.get('/history', authMiddleware, async (req, res) => {
 // ─── GET /api/scan/test-ai ─────────────────────────────────────────
 // Endpoint debug: cek koneksi ke HuggingFace
 router.get('/test-ai', async (req, res) => {
-  const AI_URL = (process.env.AI_SERVICE_URL || '').trim().replace(/\/$/, '');
-  if (!AI_URL) return res.json({ ok: false, error: 'AI_SERVICE_URL tidak diset' });
+  const AI_URL = ((process.env.AI_SERVICE_URL || 'https://byuuuu-ecoscan-api.hf.space')).trim().replace(/\/$/, '');
 
   try {
     const ping = await axios.get(AI_URL, { timeout: 15000 });

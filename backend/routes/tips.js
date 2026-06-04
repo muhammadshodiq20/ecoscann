@@ -112,6 +112,20 @@ router.get('/badges', auth, async (req, res) => {
   }
 });
 
+// Daftar kata tidak pantas yang disensor di leaderboard
+const BLOCKED_WORDS = [
+  'kontol','memek','ngentot','jancok','bajingan','asu','bangsat','pepek',
+  'toket','bokong','kimak','brengsek','anjing','babi','tai','sialan',
+  'fuck','shit','bitch','ass','dick','pussy','cock','cunt','nigger',
+  'titit','jembut','coli','colmek','ngocok','ngewe','ngeseks','homo',
+  'idiot','goblok','tolol','bodoh'
+]
+
+function containsBlockedWord(name) {
+  const lower = (name || '').toLowerCase().replace(/\s+/g, '')
+  return BLOCKED_WORDS.some(w => lower.includes(w))
+}
+
 // GET /api/tips/leaderboard — top 20 user berdasarkan ecoPoints
 router.get('/leaderboard', auth, async (req, res) => {
   try {
@@ -126,13 +140,16 @@ router.get('/leaderboard', auth, async (req, res) => {
 
     const leaders = await User.find(matchQuery)
       .sort({ ecoPoints: -1 })
-      .limit(20)
+      .limit(50)  // ambil lebih banyak dulu sebelum difilter
       .select('name ecoPoints totalScans carbonSaved badges createdAt');
 
     const myRank = await User.countDocuments({ ecoPoints: { $gt: req.user.ecoPoints } }) + 1;
 
+    // Filter nama tidak pantas, lalu ambil 20 teratas
+    const filtered = leaders.filter(u => !containsBlockedWord(u.name)).slice(0, 20)
+
     res.json({
-      leaderboard: leaders.map((u, i) => ({
+      leaderboard: filtered.map((u, i) => ({
         rank: i + 1,
         name: u.name,
         ecoPoints: u.ecoPoints,
