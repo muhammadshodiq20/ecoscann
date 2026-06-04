@@ -8,11 +8,7 @@ const WASTE_FACTS = [
   { emoji: '💸', stat: 'Rp 23 Triliun',  desc: 'kerugian ekonomi akibat sampah tahunan' },
 ]
 
-const TESTIMONIALS = [
-  { name: 'Rina S.',    city: 'Jakarta',   text: 'EcoScan bantu saya pilah sampah dengan benar. AI-nya akurat banget!',        emoji: '👩' },
-  { name: 'Budi W.',   city: 'Surabaya',  text: 'Dapat 500 EcoPoints dalam seminggu. Gamifikasi-nya bikin nagih.',             emoji: '👨' },
-  { name: 'Sari D.',   city: 'Bandung',   text: 'Fitur tips daur ulangnya sangat membantu. Sekarang gak bingung buang sampah.', emoji: '👩‍🦱' },
-]
+
 
 const FEATURES = [
   { icon: '📷', title: 'Scan AI Instan',      desc: 'Foto sampah → AI klasifikasi otomatis ke 8 kategori dalam hitungan detik' },
@@ -69,16 +65,6 @@ export default function LandingPage() {
           <p className="text-eco-100 text-base leading-relaxed mb-8 max-w-sm mx-auto">
             Foto sampahmu, biarkan AI mengklasifikasikan, dan dapatkan panduan daur ulang yang tepat. Bersama jaga bumi Indonesia.
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/register"
-              className="bg-white text-eco-700 font-semibold px-6 py-3.5 rounded-xl hover:bg-eco-50 transition-all active:scale-95 shadow-lg">
-              🚀 Mulai Gratis Sekarang
-            </Link>
-            <Link to="/login"
-              className="bg-white/10 text-white font-medium px-6 py-3.5 rounded-xl border border-white/30 hover:bg-white/20 transition-all">
-              Sudah punya akun
-            </Link>
-          </div>
         </div>
       </section>
 
@@ -118,21 +104,7 @@ export default function LandingPage() {
           </div>
 
           {/* Testimonials */}
-          <div className="space-y-3">
-            {TESTIMONIALS.map((t, i) => (
-              <div key={i} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-9 h-9 bg-eco-100 rounded-full flex items-center justify-center text-lg">{t.emoji}</div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-800">{t.name}</p>
-                    <p className="text-xs text-gray-400">{t.city}</p>
-                  </div>
-                  <div className="ml-auto text-yellow-400 text-sm">★★★★★</div>
-                </div>
-                <p className="text-xs text-gray-600 leading-relaxed">"{t.text}"</p>
-              </div>
-            ))}
-          </div>
+     
         </div>
       </section>
 
@@ -191,7 +163,7 @@ export default function LandingPage() {
           </p>
           <Link to="/register"
             className="block bg-eco-500 text-white font-semibold py-4 rounded-xl hover:bg-eco-600 transition-all active:scale-95 shadow-lg text-base">
-            🚀 Daftar Gratis Sekarang
+            Daftar Gratis Sekarang
           </Link>
           <Link to="/login" className="block text-sm text-gray-400 hover:text-eco-600 transition-colors mt-4">
             Sudah punya akun? Masuk
@@ -206,7 +178,7 @@ export default function LandingPage() {
           <span className="font-bold text-lg">EcoScan</span>
         </div>
         <p className="text-eco-200 text-xs mb-2">Aplikasi Pilah Sampah Cerdas Berbasis AI</p>
-        <p className="text-eco-300 text-xs">© 2026 EcoScan · Coding Camp DBS Foundation · ecoscan-tau.vercel.app</p>
+        <p className="text-eco-300 text-xs"> Capstune EcoScan · Coding Camp DBS Foundation 2026</p>
       </footer>
     </div>
   )
